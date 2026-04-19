@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Market Prediction App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #0f3460 0%, #16213e 50%, #0a0e27 100%);
+            --accent-neon: #00d9ff;
+            --accent-neon-pink: #ff006e;
+            --accent-neon-green: #39ff14;
+            --accent-neon-purple: #b300ff;
+            --color-text-primary: #e8f0f5;
+            --color-text-secondary: #a0aec0;
+            --color-text-tertiary: #718096;
+            --color-text-success: #39ff14;
+            --color-text-danger: #ff006e;
+            --color-text-warning: #ffa500;
+            --border-radius-md: 12px;
+            --border-radius-lg: 16px;
+            --font-sans: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--primary-gradient);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 217, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(255, 0, 110, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .app {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: var(--primary-gradient);
+            position: relative;
+            z-index: 2;
+        }
+
+        .header {
+            background: rgba(15, 52, 96, 0.7);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin: 0 0 0.5rem;
+            background: linear-gradient(135deg, #00d9ff 0%, #39ff14 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: var(--color-text-secondary);
+            margin: 0;
+        }
+
+        .container {
+            flex: 1;
+            padding: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .metric {
+            background: rgba(22, 33, 62, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: var(--border-radius-md);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(0, 217, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: var(--color-text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00d9ff 0%, #39ff14 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+        }
+
+        .metric-change {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .positive {
+            color: var(--color-text-success);
+        }
+
+        .negative {
+            color: var(--color-text-danger);
+        }
+
+        .neutral {
+            color: var(--color-text-secondary);
+        }
+
+        .section {
+            background: rgba(22, 33, 62, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: var(--border-radius-lg);
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .section h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 1.5rem;
+            color: var(--color-text-primary);
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        .section h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, #00d9ff, #39ff14);
+            border-radius: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: 1px solid rgba(0, 217, 255, 0.4);
+            background: rgba(0, 217, 255, 0.1);
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent-neon);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            background: rgba(0, 217, 255, 0.2);
+            border-color: var(--accent-neon);
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.4);
+        }
+
+        .btn.active {
+            background: rgba(0, 217, 255, 0.3);
+            border-color: var(--accent-neon);
+            color: #00d9ff;
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.6), inset 0 0 10px rgba(0, 217, 255, 0.2);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+            margin-bottom: 1rem;
+            background: rgba(15, 35, 65, 0.4);
+            border-radius: var(--border-radius-md);
+            padding: 12px;
+            border: 1px solid rgba(0, 217, 255, 0.15);
+        }
+
+        .input-group {
+            margin-bottom: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--color-text-primary);
+        }
+
+        .input-group input,
+        .input-group select {
+            padding: 12px 14px;
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: var(--border-radius-md);
+            font-size: 14px;
+            background: rgba(15, 35, 65, 0.5);
+            color: var(--color-text-primary);
+            font-family: var(--font-sans);
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+
+        .input-group input::placeholder {
+            color: var(--color-text-tertiary);
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: var(--accent-neon);
+            background: rgba(15, 35, 65, 0.7);
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.3), inset 0 0 10px rgba(0, 217, 255, 0.1);
+        }
+
+        .stock-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stock-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: rgba(15, 35, 65, 0.5);
+            border-radius: var(--border-radius-md);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .stock-item:hover {
+            background: rgba(15, 35, 65, 0.7);
+            border-color: rgba(0, 217, 255, 0.4);
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.2);
+        }
+
+        .stock-left {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex: 1;
+        }
+
+        .stock-symbol {
+            font-weight: 700;
+            color: var(--accent-neon);
+            min-width: 50px;
+            text-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+        }
+
+        .stock-price {
+            color: var(--color-text-secondary);
+        }
+
+        .stock-signal {
+            padding: 4px 10px;
+            border-radius: var(--border-radius-md);
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .signal-bullish {
+            background: rgba(57, 255, 20, 0.15);
+            color: var(--accent-neon-green);
+            border: 1px solid rgba(57, 255, 20, 0.4);
+            box-shadow: 0 0 10px rgba(57, 255, 20, 0.2);
+        }
+
+        .signal-bearish {
+            background: rgba(255, 0, 110, 0.15);
+            color: var(--accent-neon-pink);
+            border: 1px solid rgba(255, 0, 110, 0.4);
+            box-shadow: 0 0 10px rgba(255, 0, 110, 0.2);
+        }
+
+        .signal-neutral {
+            background: rgba(160, 174, 192, 0.15);
+            color: var(--color-text-secondary);
+            border: 1px solid rgba(160, 174, 192, 0.3);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .risk-box {
+            padding: 14px;
+            border-left: 4px solid var(--accent-neon-pink);
+            background: rgba(255, 0, 110, 0.08);
+            border-radius: var(--border-radius-md);
+            font-size: 13px;
+            border-top: 1px solid rgba(255, 0, 110, 0.2);
+            border-right: 1px solid rgba(255, 0, 110, 0.1);
+            border-bottom: 1px solid rgba(255, 0, 110, 0.1);
+        }
+
+        .risk-box-title {
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--accent-neon-pink);
+        }
+
+        .risk-box-desc {
+            color: var(--color-text-secondary);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .indicator-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 0.5px solid rgba(0, 217, 255, 0.1);
+            font-size: 13px;
+        }
+
+        .indicator-row:last-child {
+            border-bottom: none;
+        }
+
+        .indicator-row strong {
+            font-weight: 600;
+            color: var(--color-text-primary);
+        }
+
+        .forecast-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .forecast-item {
+            padding: 12px;
+            background: var(--color-background-secondary);
+            border-radius: var(--border-radius-md);
+            border: 0.5px solid var(--color-border-tertiary);
+        }
+
+        .forecast-time {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .forecast-price {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--color-text-primary);
+            margin-bottom: 4px;
+        }
+
+        .forecast-desc {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+
+        .analysis-result {
+            margin-top: 1rem;
+            padding: 14px;
+            background: var(--color-background-secondary);
+            border-radius: var(--border-radius-md);
+            border: 0.5px solid var(--color-border-tertiary);
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--color-text-primary);
+            display: none;
+        }
+
+        .signal-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .signal-success {
+            background: var(--color-text-success);
+        }
+
+        .signal-warning {
+            background: var(--color-text-warning);
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .forecast-section {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .header {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .forecast-section {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="header">
+            <h1>Stock Market Prediction</h1>
+            <p>Real-time trend analysis and investment forecasting</p>
+        </div>
+
+        <div class="container">
+            <!-- Dashboard Metrics -->
+            <div class="dashboard">
+                <div class="metric">
+                    <div class="metric-label">S&P 500 Index</div>
+                    <div class="metric-value" id="sp500">5,847</div>
+                    <div class="metric-change positive" id="sp500-change">↑ +1.2% today</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Market Trend</div>
+                    <div class="metric-value" id="trend">Bullish</div>
+                    <div class="metric-change neutral" id="trend-conf">72% confidence</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">30-day Target</div>
+                    <div class="metric-value" id="target">5,920</div>
+                    <div class="metric-change positive" id="target-change">+1.3% upside</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Market Volatility</div>
+                    <div class="metric-value" id="volatility">18%</div>
+                    <div class="metric-change neutral" id="volatility-status">Elevated</div>
+                </div>
+            </div>
+
+            <!-- Price Forecast Chart Section -->
+            <div class="section">
+                <h2>Price forecast chart</h2>
+                <div class="controls">
+                    <button class="btn" onclick="updateTimeframe('1M')">1 Month</button>
+                    <button class="btn active" onclick="updateTimeframe('3M')">3 Months</button>
+                    <button class="btn" onclick="updateTimeframe('1Y')">1 Year</button>
+                    <button class="btn" onclick="updateTimeframe('5Y')">5 Years</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="forecastChart" role="img" aria-label="Stock price forecast chart with confidence bands"></canvas>
+                </div>
+            </div>
+
+            <!-- Technical Indicators and Market Signals -->
+            <div class="grid-2">
+                <div class="section">
+                    <h2>Technical indicators</h2>
+                    <div class="indicator-row">
+                        <span>RSI (14)</span>
+                        <strong>62</strong>
+                    </div>
+                    <div class="indicator-row">
+                        <span>MACD Signal</span>
+                        <strong style="color: var(--color-text-success);">Bullish</strong>
+                    </div>
+                    <div class="indicator-row">
+                        <span>50-day MA</span>
+                        <strong>5,756</strong>
+                    </div>
+                    <div class="indicator-row">
+                        <span>200-day MA</span>
+                        <strong>5,621</strong>
+                    </div>
+                    <div class="indicator-row">
+                        <span>Bollinger Band</span>
+                        <strong>Normal</strong>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>Market signals</h2>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="signal-dot signal-success"></div>
+                            <span style="font-size: 13px;">Uptrend confirmed</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="signal-dot signal-success"></div>
+                            <span style="font-size: 13px;">Support holds 5,700</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="signal-dot signal-warning"></div>
+                            <span style="font-size: 13px;">Overbought conditions</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="signal-dot signal-success"></div>
+                            <span style="font-size: 13px;">Volume increasing</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stock Recommendations -->
+            <div class="section">
+                <h2>Top stock recommendations</h2>
+                <div class="stock-list">
+                    <div class="stock-item">
+                        <div class="stock-left">
+                            <span class="stock-symbol">AAPL</span>
+                            <span class="stock-price">$190.50</span>
+                        </div>
+                        <span class="stock-signal signal-bullish">STRONG BUY</span>
+                    </div>
+                    <div class="stock-item">
+                        <div class="stock-left">
+                            <span class="stock-symbol">MSFT</span>
+                            <span class="stock-price">$425.20</span>
+                        </div>
+                        <span class="stock-signal signal-bullish">BUY</span>
+                    </div>
+                    <div class="stock-item">
+                        <div class="stock-left">
+                            <span class="stock-symbol">NVDA</span>
+                            <span class="stock-price">$875.60</span>
+                        </div>
+                        <span class="stock-signal signal-neutral">HOLD</span>
+                    </div>
+                    <div class="stock-item">
+                        <div class="stock-left">
+                            <span class="stock-symbol">TSLA</span>
+                            <span class="stock-price">$245.30</span>
+                        </div>
+                        <span class="stock-signal signal-bearish">SELL</span>
+                    </div>
+                    <div class="stock-item">
+                        <div class="stock-left">
+                            <span class="stock-symbol">META</span>
+                            <span class="stock-price">$485.10</span>
+                        </div>
+                        <span class="stock-signal signal-bullish">BUY</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price Forecast -->
+            <div class="section">
+                <h2>Price forecast</h2>
+                <div class="forecast-section">
+                    <div class="forecast-item">
+                        <div class="forecast-time">7 days</div>
+                        <div class="forecast-price">5,880</div>
+                        <div class="forecast-desc">+0.6% expected</div>
+                    </div>
+                    <div class="forecast-item">
+                        <div class="forecast-time">30 days</div>
+                        <div class="forecast-price">5,920</div>
+                        <div class="forecast-desc">+1.3% expected</div>
+                    </div>
+                    <div class="forecast-item">
+                        <div class="forecast-time">90 days</div>
+                        <div class="forecast-price">5,980</div>
+                        <div class="forecast-desc">+2.3% expected</div>
+                    </div>
+                    <div class="forecast-item">
+                        <div class="forecast-time">1 year</div>
+                        <div class="forecast-price">6,150</div>
+                        <div class="forecast-desc">+5.2% expected</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Assessment -->
+            <div class="section">
+                <h2>Risk assessment</h2>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div class="risk-box">
+                        <div class="risk-box-title">Federal Reserve Policy</div>
+                        <div class="risk-box-desc">Interest rate decisions and policy statements may trigger market volatility in the next 4 weeks.</div>
+                    </div>
+                    <div class="risk-box">
+                        <div class="risk-box-title">Earnings Season</div>
+                        <div class="risk-box-desc">Q1 earnings releases expected to impact sector rotations and market sentiment significantly.</div>
+                    </div>
+                    <div class="risk-box">
+                        <div class="risk-box-title">Geopolitical Tensions</div>
+                        <div class="risk-box-desc">International trade negotiations and global conflicts may affect risk sentiment.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Stock Analyzer -->
+            <div class="section">
+                <h2>Custom stock analyzer</h2>
+                <div class="input-group">
+                    <label>Stock symbol</label>
+                    <input type="text" id="stockInput" placeholder="e.g., AAPL" value="AAPL">
+                </div>
+                <div class="input-group">
+                    <label>Analysis type</label>
+                    <select id="analysisType">
+                        <option>Technical Analysis</option>
+                        <option>Fundamental Analysis</option>
+                        <option>Sentiment Analysis</option>
+                        <option>Comparative Valuation</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="analyzeStock()" style="width: 100%; padding: 12px; font-weight: 600;">Run analysis</button>
+                <div id="analysisResult" class="analysis-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chartInstance = null;
+
+        const chartData = {
+            '1M': {
+                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                prices: [5820, 5835, 5890, 5920],
+                upper: [5950, 5980, 6030, 6070],
+                lower: [5680, 5690, 5740, 5780]
+            },
+            '3M': {
+                labels: ['Apr', 'May', 'Jun', 'Jul'],
+                prices: [5750, 5820, 5890, 5920],
+                upper: [5950, 6020, 6080, 6120],
+                lower: [5550, 5620, 5700, 5750]
+            },
+            '1Y': {
+                labels: ['Apr 24', 'Jul 24', 'Oct 24', 'Jan 25', 'Apr 25'],
+                prices: [5100, 5350, 5500, 5750, 5920],
+                upper: [5350, 5600, 5800, 6000, 6150],
+                lower: [4850, 5100, 5200, 5500, 5700]
+            },
+            '5Y': {
+                labels: ['2020', '2021', '2022', '2023', '2024', '2025'],
+                prices: [2954, 4182, 3843, 4109, 5100, 5920],
+                upper: [3300, 4600, 4200, 4500, 5500, 6300],
+                lower: [2600, 3800, 3400, 3700, 4700, 5500]
+            }
+        };
+
+        function updateTimeframe(period) {
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+
+            const data = chartData[period];
+            const ctx = document.getElementById('forecastChart').getContext('2d');
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Price',
+                            data: data.prices,
+                            borderColor: '#185fa5',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            pointRadius: 6,
+                            pointBackgroundColor: '#185fa5',
+                            pointBorderColor: 'white',
+                            pointBorderWidth: 2,
+                            tension: 0.4,
+                            fill: false
+                        },
+                        {
+                            label: 'Upper confidence band (95%)',
+                            data: data.upper,
+                            borderColor: 'rgba(97, 194, 87, 0.4)',
+                            backgroundColor: 'rgba(97, 194, 87, 0.08)',
+                            borderWidth: 1,
+                            borderDash: [4, 4],
+                            pointRadius: 0,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Lower confidence band (95%)',
+                            data: data.lower,
+                            borderColor: 'rgba(226, 75, 74, 0.4)',
+                            backgroundColor: 'rgba(226, 75, 74, 0.08)',
+                            borderWidth: 1,
+                            borderDash: [4, 4],
+                            pointRadius: 0,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: { size: 12, weight: '500' }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function analyzeStock() {
+            const symbol = document.getElementById('stockInput').value.toUpperCase() || 'AAPL';
+            const analysisType = document.getElementById('analysisType').value;
+            const resultDiv = document.getElementById('analysisResult');
+
+            const analyses = {
+                'Technical Analysis': `${symbol}: Strong uptrend confirmed with price above key moving averages. RSI at 62 indicates positive momentum without overbought extremes. 50-day MA significantly above 200-day MA suggests bullish alignment. Next support level at 5,700, resistance at 6,000. Trading volume above average indicates institutional participation.`,
+                'Fundamental Analysis': `${symbol}: P/E ratio of 18.5x is attractive compared to sector average of 20x. Revenue growth accelerating at 12% YoY with 15% expected next year. Operating margins expanding by 150 basis points. Strong balance sheet with $45B cash and minimal debt. Free cash flow generation robust at $12B annually.`,
+                'Sentiment Analysis': `${symbol}: Investor sentiment decidedly bullish. Social media mentions up 35% this week with 78% positive sentiment. Analyst upgrades outnumber downgrades 3:1. Institutional buying pressure intensifying with recent block trades. Options market showing call buying interest at higher strikes.`,
+                'Comparative Valuation': `${symbol}: Trading at 18x forward earnings vs sector median 20x. Relative PEG ratio of 0.85 suggests undervaluation given growth prospects. EV/EBITDA of 12x below peer average of 14.5x. Dividend yield of 1.8% competitive within technology sector. Growth prospects well-aligned with industry trends.`
+            };
+
+            resultDiv.textContent = analyses[analysisType];
+            resultDiv.style.display = 'block';
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Initialize chart on page load
+        window.addEventListener('load', function() {
+            updateTimeframe('3M');
+        });
+    </script>
+</body>
+</html>
